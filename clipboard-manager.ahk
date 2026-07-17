@@ -68,12 +68,11 @@ PasteFromHistory() {
 }
 
 PastePlain() {
-    clip := A_Clipboard
-    A_Clipboard := clip
+    A_Clipboard := A_Clipboard  ; self-assign strips formatting metadata
     Send("^v")
 }
 
-PasteTransform(type) {
+PasteTransformed(type) {
     text := A_Clipboard
     Switch type {
         Case "upper": text := StrUpper(text)
@@ -121,19 +120,12 @@ EncodeBase64(data) {
 
 DecodeBase64() {
     text := A_Clipboard
-    ; Try file path decode first
-    if FileExist(text) {
-        ; It's a file, read and decode
-        return
-    }
-    ; Decode base64 string
     static CRYPT_STRING_BASE64 := 0x1
-    inSize := StrPut(text, "UTF-16") - 2
     inBuf := Buffer((StrLen(text) + 1) * 2)
     StrPut(text, inBuf, "UTF-16")
     DllCall("Crypt32\CryptStringToBinaryW", "Ptr", inBuf, "UInt", 0, "UInt", CRYPT_STRING_BASE64, "Ptr", 0, "UInt*", &outSize:=0, "Ptr", 0, "Ptr", 0)
     outBuf := Buffer(outSize)
     DllCall("Crypt32\CryptStringToBinaryW", "Ptr", inBuf, "UInt", 0, "UInt", CRYPT_STRING_BASE64, "Ptr", outBuf, "UInt*", &outSize, "Ptr", 0, "Ptr", 0)
-    A_Clipboard := outBuf
+    A_Clipboard := StrGet(outBuf, "UTF-8")  ; convert Buffer to string
     TrayTip("Clipboard", "Base64 decoded", 0x10)
 }

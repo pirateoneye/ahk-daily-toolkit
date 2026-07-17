@@ -33,8 +33,8 @@
 #F4::ToggleMic()
 
 ToggleMic() {
-    ; Toggle default recording device mute
-    Run("powershell -Command "(New-Object -ComObject Shell.Application).Windows()"",, "Hide")
+    ; Toggle default recording device mute via SoundVolumeView or built-in
+    SoundSetMute(-1, "", "Microphone")  ; toggle mic mute
     TrayTip("Microphone", "Toggled mute", 0x10)
 }
 
@@ -88,13 +88,24 @@ ToggleMic() {
 
 ; ─── Taskbar toggle ─────────────────────────────
 #t:: {
-    ; Toggle taskbar autohide via registry
-    static autohide := false
-    autohide := !autohide
-    RegWrite(autohide ? 3 : 2, "REG_DWORD", "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3", "Settings")
-    ; Refresh explorer
+    ; Toggle taskbar autohide via StuckRects3 binary
+    static key := "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3"
+    RegRead(data, key, "Settings")
+    if !IsObject(data) || !data.Size {
+        TrayTip("Taskbar", "Failed to read settings", 0x30)
+        return
+    }
+    ; Byte 8 (offset 8), bit 1 controls auto-hide
+    if data.Size < 9 {
+        TrayTip("Taskbar", "Unexpected registry format", 0x30)
+        return
+    }
+    byte := NumGet(data, 8, "UChar")
+    autohide := byte & 1
+    NumPut("UChar", byte ^ 1, data, 8)
+    RegWrite(data, "REG_BINARY", key, "Settings")
     Run("explorer.exe")
-    TrayTip("Taskbar", autohide ? "Auto-hide ON" : "Auto-hide OFF", 0x10)
+    TrayTip("Taskbar", autohide ? "Auto-hide OFF" : "Auto-hide ON", 0x10)
 }
 
 ; ─── Screensaver / Lock ───────────────────────────
@@ -124,8 +135,12 @@ ToggleMic() {
 ; ─── Quick search selected text ─────────────────
 #s:: {
     oldClip := A_Clipboard
+    A_Clipboard := ""  ; clear before copy for ClipWait
     Send("^c")
-    Sleep(50)
+    if !ClipWait(1) {
+        A_Clipboard := oldClip
+        return
+    }
     query := A_Clipboard
     A_Clipboard := oldClip
     if query != "" {

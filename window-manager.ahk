@@ -61,8 +61,8 @@ SnapQuarter(pos) {
         Case "tr": x := mg.Left + w + snapMargin * 2,  y := mg.Top + snapMargin
         Case "bl": x := mg.Left + snapMargin,           y := mg.Top + h + snapMargin * 2
         Case "br": x := mg.Left + w + snapMargin * 2,   y := mg.Top + h + snapMargin * 2
-        Case "top": w := mg.Right - mg.Left - snapMargin * 2, h := h, x := mg.Left + snapMargin, y := mg.Top + snapMargin
-        Case "bot": w := mg.Right - mg.Left - snapMargin * 2, h := h, x := mg.Left + snapMargin, y := mg.Top + h + snapMargin * 2
+        Case "top": w := mg.Right - mg.Left - snapMargin * 2, x := mg.Left + snapMargin, y := mg.Top + snapMargin
+        Case "bot": w := mg.Right - mg.Left - snapMargin * 2, x := mg.Left + snapMargin, y := mg.Top + h + snapMargin * 2
     }
     WinMove(x, y, w, h, hwnd)
 }
@@ -84,8 +84,10 @@ MoveToMonitor(dir) {
 }
 
 WinGetMonitor(hwnd) {
-    WinGetPos(&x, &y,,, hwnd)
-    cx := x + 400, cy := y + 300
+    WinGetPos(&x, &y, &w, &h, hwnd)
+    ; Center of visible window, clamped to valid range
+    cx := Max(0, x == -32000 ? 500 : x + Max(w, 200) // 2)
+    cy := Max(0, y == -32000 ? 500 : y + Max(h, 200) // 2)
     Loop monitorCount {
         mg := MonitorGetWorkArea(A_Index)
         if (cx >= mg.Left && cx <= mg.Right && cy >= mg.Top && cy <= mg.Bottom)
@@ -106,10 +108,10 @@ WinGetMonitor(hwnd) {
         TrayTip("Always on Top", "Enabled", 0x10)
     }
 }
-
 ; ─── Transparency ───────────────────────────────
+global transMap := Map()
+
 #^v:: {
-    static transMap := Map()
     hwnd := WinGetID("A")
     cur := transMap.Has(hwnd) ? transMap[hwnd] : 255
     newTrans := cur = 255 ? 180 : 255
@@ -122,13 +124,13 @@ WinGetMonitor(hwnd) {
 #WheelDown:: AdjustTransparency(-15)
 
 AdjustTransparency(delta) {
-    static transMap := Map()
     hwnd := WinGetID("A")
     cur := transMap.Has(hwnd) ? transMap[hwnd] : 255
     newTrans := Min(255, Max(50, cur + delta))
     transMap[hwnd] := newTrans
     WinSetTransparent(newTrans, hwnd)
 }
+
 
 ; ─── Minimize all but active ──────────────────
 #Escape:: {

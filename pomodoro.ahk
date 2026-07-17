@@ -68,8 +68,8 @@ ShowTimer() {
     btnRow := gGui.AddText("w300 Center")
     gGui.AddButton("w90", "▶ Start").OnEvent("Click", (*) => ToggleTimer())
     gGui.AddButton("w90 x+8", "⏹ Reset").OnEvent("Click", (*) => ResetTimer())
-    gGui.AddButton("w90 x+8", "✕ Close").OnEvent("Click", (*) => gGui.Destroy())
-    gGui.OnEvent("Escape", (*) => gGui.Destroy())
+    gGui.AddButton("w90 x+8", "✕ Close").OnEvent("Click", (*) => CleanupGui())
+    gGui.OnEvent("Escape", (*) => CleanupGui())
     gGui.Show("Center w340 h200")
     UpdateDisplay()
 }
@@ -136,4 +136,10 @@ CompletePomodoro() {
     ShowTimer()
 }
 
+CleanupGui(*) {
+    global gGui, gTimerLabel
+    gGui.Destroy()
+    gGui := ""
+    gTimerLabel := ""
+}
 TrayTip("Pomodoro", "Win+Shift+P to start | Work 25m / Short 5m / Long 15m", 0x10)

@@ -78,13 +78,14 @@ RefreshList(list) {
         launcherList.Add(opts)
     if list.Length
         launcherList.Value := 1
+
 }
 
 #HotIf WinActive("ahk_id " . launcherGui.Hwnd)
     Enter:: LauncherRun()
     Esc:: LauncherClose()
     Up::   launcherList.Value := Max(1, launcherList.Value - 1)
-    Down:: launcherList.Value := Min(launcherList.Value + 1, launcherList.Text && launcherList.Text != "" ? commands.Length : 1)
+    Down:: launcherList.Value := Min(launcherList.Value + 1, launcherList.GetCount())
 #HotIf
 
 LauncherRun() {
